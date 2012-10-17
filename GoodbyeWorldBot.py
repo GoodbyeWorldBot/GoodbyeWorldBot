@@ -3,8 +3,9 @@
 # Author: reddit.com/u/GoodbyeWorldBot aka GoodbyeWorldBot@gmail.com
 
 # ver	dd/mm/yyyy	/u/whoever-did-change	detail
-# v1.0	14/10/2012	/u/GoodbyeWorldBot	Initial version
-# v1.1	15/10/2012	/u/GoodbyeWorldBot	Added better output, optional delete comments
+# v1.0	14/10/2012	/u/GoodbyeWorldBot		Initial version
+# v1.1	15/10/2012	/u/GoodbyeWorldBot		Added better output, optional delete comments
+# v1.2	16/10/2012	/u/GoodbyeWorldBot		Force user to specify a reddit ID to use in HTTP headers, so Reddit.com can differentiate between different people executing the script, and potentially contact them should there be questions
 
 import time
 import praw
@@ -14,13 +15,12 @@ import urllib2
 import os
 import argparse
 
-version = "1.1"
+version = "1.2"
 version_token = "GoodbyeWorldBot_v" + version
-user_agent = "/u/GoodbyeWorldBot v" + version + " by /r/GoodbyeWorld"
 message = "The owner of this account has requested this content be removed by /u/GoodbyeWorldBot\n\nVisit /r/GoodbyeWorld for more information.\n\n" + version_token
 
 
-parser = argparse.ArgumentParser(description="A script that automates the deletion of comments and submissions the supplied Reddit.com user.  Default behaviour is to change all comments and self-post-text to a \"goodbye\" message, and to delete all submissions.", epilog="See reddit.com/r/GoodbyeWorld and /u/GoodbyeWorld for support.")
+parser = argparse.ArgumentParser(description="A script that automates the deletion of comments and submissions the supplied Reddit.com user.  Default behaviour is to change all comments and self-post-text to a \"goodbye\" message, and to delete all submissions.", epilog="See reddit.com/r/GoodbyeWorld and /u/GoodbyeWorld for support.  For updates, visit our git repo at https://github.com/GoodbyeWorldBot/GoodbyeWorldBot")
 # add options for the deletion notice.. --message ?
 parser.add_argument("--show-message",			 action="store_true", default=False,	help="Print the goodbye message")
 parser.add_argument("--dont-change-comments",	 action="store_true", default=False,	help="Do not change comments to the GoodbyeWorldBot deletion notice [default is to change]")
@@ -29,10 +29,12 @@ parser.add_argument("--dont-add-goodbye",		 action="store_true", default=False,	
 parser.add_argument("--dont-change-submissions", action="store_true", default=False,	help="Do not change self-post-text to the GoodbyeWorldBot deletion notice [default is to change it]")
 parser.add_argument("--dont-delete-submissions", action="store_true", default=False, 	help="Do not delete submissions. [default is to delete them]. Can be combined with --dont-change-submissions")
 parser.add_argument("--dont-show-content",		 action="store_true", default=False,	help="Do not print the content of posts and submissions prior to modification [default]")
-parser.add_argument("username", 				 										help="The Reddit.com username to act upon")
-parser.add_argument("password", 				 										help="The password for the specified username")
+parser.add_argument("your-reddit-id",			 					  					help="The Reddit username of the person executing this script. In case Reddit Admins need to contact you, your username is provided in all HTTP headers.  Nothing is done to this account!")
+parser.add_argument("username", 		 												help="The Reddit username to act upon. This account will have its subissions and comments modified by this script.")
+parser.add_argument("password", 														help="The password for the specified username")
 args = parser.parse_args()
 
+user_agent = "GoodbyeWorldBot v" + version + " see /r/GoodbyeWorld. Currently being executed by /u/" + args.executed_by
 
 if args.show_message:
 	print "Using the following message when editing self-posts and comments:"
@@ -42,10 +44,13 @@ if args.show_message:
 	print
 	raise SystemExit
 
+print "+Using username '" + your_reddit_id + "' in HTTP headers sent to Reddit"
+
 try:
 	result = None
 	submissions = None
 	comments = None
+
 
 	print "+Logging in to Reddit using username '" + args.username + "'"
 	r = praw.Reddit(user_agent=user_agent)
